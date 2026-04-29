@@ -17,6 +17,7 @@ import { experienceRoutes } from './routes/experience.js';
 import { testimonialRoutes } from './routes/testimonials.js';
 import { inquiryRoutes } from './routes/inquiries.js';
 import { resumeRoutes } from './routes/resume.js';
+import { chatRoutes } from './routes/chat.js';
 
 export async function buildApp() {
   const app = Fastify({
@@ -68,6 +69,7 @@ export async function buildApp() {
   await app.register(testimonialRoutes, { prefix: '/api/testimonials' });
   await app.register(inquiryRoutes, { prefix: '/api/inquiries' });
   await app.register(resumeRoutes, { prefix: '/api/resume' });
+  await app.register(chatRoutes, { prefix: '/api/chat' });
 
   // Global error handler
   app.setErrorHandler((error: Error & { statusCode?: number }, request, reply) => {

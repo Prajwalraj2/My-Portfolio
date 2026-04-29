@@ -12,6 +12,9 @@ const envSchema = z.object({
   DATABASE_URL: z.string().optional(),
   REDIS_URL: z.string().optional(),
   
+  // AI Service
+  AI_SERVICE_URL: z.string().default('http://127.0.0.1:8001'),
+  
   // JWT
   JWT_SECRET: z.string().min(32).default('development-secret-key-min-32-characters'),
   JWT_EXPIRES_IN: z.string().default('15m'),
