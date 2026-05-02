@@ -1,8 +1,11 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, ExternalLink, Github, Calendar } from "lucide-react";
-import { getProject, getProjects } from "@/lib/fetchers";
+import { getProject } from "@/lib/fetchers";
 import type { Metadata } from "next";
+
+// Force dynamic rendering - skip static generation at build time
+export const dynamic = "force-dynamic";
 
 interface ProjectPageProps {
   params: Promise<{ slug: string }>;
@@ -25,13 +28,6 @@ export async function generateMetadata({ params }: ProjectPageProps): Promise<Me
       images: project.thumbnailUrl ? [project.thumbnailUrl] : [],
     },
   };
-}
-
-export async function generateStaticParams() {
-  const projects = await getProjects();
-  return projects.map((project) => ({
-    slug: project.slug,
-  }));
 }
 
 export default async function ProjectPage({ params }: ProjectPageProps) {

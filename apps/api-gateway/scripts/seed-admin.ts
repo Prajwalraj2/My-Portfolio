@@ -18,7 +18,7 @@ const SALT_ROUNDS = 12;
 
 async function main() {
   // Dynamic imports AFTER dotenv.config()
-  const { prisma } = await import('@portfolio/database');
+  const { prisma } = await import('../src/db/index.js');
   const bcrypt = await import('bcrypt');
 
   try {
@@ -86,7 +86,7 @@ async function main() {
     console.error('❌ Failed to create admin:', error);
     process.exit(1);
   } finally {
-    const { prisma } = await import('@portfolio/database');
+    const { prisma } = await import('../src/db/index.js');
     await prisma.$disconnect();
   }
 }

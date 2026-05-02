@@ -8,6 +8,12 @@ class Settings(BaseSettings):
     environment: str = "development"
     port: int = 8001
     
+    # API Gateway for fetching portfolio data
+    api_gateway_url: str = "http://127.0.0.1:8000"
+    
+    # Cache settings
+    context_cache_ttl: int = 300  # 5 minutes
+    
     cors_origins: list[str] = [
         "http://localhost:3000",
         "http://127.0.0.1:3000",

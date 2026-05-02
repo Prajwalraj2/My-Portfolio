@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  portfolio-api-gateway:
+    image: prajwal270/portfolio-api-gateway:v1
+    container_name: portfolio-api-gateway
+    ports:
+      - "8013:8000"
+    env_file:
+      - .env  # Load the shared .env file
+    environment:
+      # Map only the API Gateway variables
+      - NODE_ENV=${API_GATEWAY_NODE_ENV}
+      - PORT=${API_GATEWAY_PORT}
+      - HOST=${API_GATEWAY_HOST}
+      - AI_SERVICE_URL=${API_GATEWAY_AI_SERVICE_URL}
+      - DATABASE_URL=${API_GATEWAY_DATABASE_URL}
+      - JWT_SECRET=${API_GATEWAY_JWT_SECRET}
+      - JWT_REFRESH_SECRET=${API_GATEWAY_JWT_REFRESH_SECRET}
+      - CORS_ORIGIN=${API_GATEWAY_CORS_ORIGIN}
+      - RATE_LIMIT_MAX=${API_GATEWAY_RATE_LIMIT_MAX}
+      - RATE_LIMIT_WINDOW=${API_GATEWAY_RATE_LIMIT_WINDOW}
+    restart: unless-stopped
+    networks:
+      - portfolio-network
+
+  ai-service:
+    image: prajwal270/portfolio-ai-service:v1
+    container_name: ai-service
+    ports:
+      - "8014:8001"
+    env_file:
+      - .env  # Load the same .env file
+    environment:
+      # Map only the AI Service variables
+      - OPENAI_API_KEY=${AI_SERVICE_OPENAI_API_KEY}
+      - OPENAI_MODEL=${AI_SERVICE_OPENAI_MODEL}
+      - ENVIRONMENT=${AI_SERVICE_ENVIRONMENT}
+      - PORT=${AI_SERVICE_PORT}
+      - API_GATEWAY_URL=${AI_SERVICE_API_GATEWAY_URL}
+      - CONTEXT_CACHE_TTL=${AI_SERVICE_CONTEXT_CACHE_TTL}
+    restart: unless-stopped
+    networks:
+      - portfolio-network
+
+networks:
+  portfolio-network:
+    driver: bridge
