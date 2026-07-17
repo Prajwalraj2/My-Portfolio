@@ -1,0 +1,145 @@
+ubuntu@ip-10-83-0-47:~/docker/Enov888$ sudo docker logs ai-service
+INFO:     Started server process [1]
+INFO:     Waiting for application startup.
+🚀 AI Service starting on port 8001
+📦 Environment: development
+🤖 Model: gpt-4o
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
+INFO:     127.0.0.1:50678 - "GET /health HTTP/1.1" 200 OK
+INFO:     172.26.0.2:39572 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35244 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60806 - "GET /health HTTP/1.1" 200 OK
+Fetching fresh portfolio context from API Gateway...
+Context loaded: 10 projects, 1 skills, 1 experiences
+INFO:     172.26.0.2:40242 - "POST /chat/complete HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46938 - "GET /health HTTP/1.1" 200 OK
+ubuntu@ip-10-83-0-47:~/docker/Enov888$ sudo docker logs portfolio-api-gateway
+◇ injected env (0) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+[2026-05-01 13:04:33.540 +0000] INFO: Server listening at http://127.0.0.1:8000
+[2026-05-01 13:04:33.541 +0000] INFO: Server listening at http://172.26.0.2:8000
+[2026-05-01 13:04:33.541 +0000] INFO: 🚀 API Gateway running at http://0.0.0.0:8000
+[2026-05-01 13:04:33.541 +0000] INFO: 📝 Environment: development
+[2026-05-01 13:04:33.541 +0000] INFO: 🔗 Health check: http://0.0.0.0:8000/health
+[2026-05-01 13:04:56.870 +0000] INFO: incoming request
+    reqId: "req-1"
+    req: {
+      "method": "GET",
+      "url": "/api/chat/health",
+      "host": "enov8-india.enov8.com",
+      "remoteAddress": "172.26.0.1",
+      "remotePort": 37834
+    }
+[2026-05-01 13:04:56.924 +0000] INFO: request completed
+    reqId: "req-1"
+    res: {
+      "statusCode": 200
+    }
+    responseTime: 53.55781316757202
+[2026-05-01 13:05:44.852 +0000] INFO: incoming request
+    reqId: "req-2"
+    req: {
+      "method": "POST",
+      "url": "/api/chat/complete",
+      "host": "enov8-india.enov8.com",
+      "remoteAddress": "172.26.0.1",
+      "remotePort": 47344
+    }
+(node:1) Warning: SECURITY WARNING: The SSL modes 'prefer', 'require', and 'verify-ca' are treated as aliases for 'verify-full'.
+In the next major version (pg-connection-string v3.0.0 and pg v9.0.0), these modes will adopt standard libpq semantics, which have weaker security guarantees.
+
+To prepare for this change:
+- If you want the current behavior, explicitly use 'sslmode=verify-full'
+- If you want libpq compatibility now, use 'uselibpqcompat=true&sslmode=require'
+
+See https://www.postgresql.org/docs/current/libpq-ssl.html for libpq SSL mode definitions.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[2026-05-01 13:05:44.912 +0000] INFO: incoming request
+    reqId: "req-3"
+    req: {
+      "method": "GET",
+      "url": "/api/projects",
+      "host": "portfolio-api-gateway:8000",
+      "remoteAddress": "172.26.0.3",
+      "remotePort": 37746
+    }
+prisma:query SELECT COUNT(*) AS "_count$_all" FROM (SELECT "public"."projects"."id" FROM "public"."projects" WHERE "public"."projects"."is_published" = $1 OFFSET $2) AS "sub"
+prisma:query SELECT "public"."projects"."id", "public"."projects"."slug", "public"."projects"."title", "public"."projects"."description", "public"."projects"."long_description", "public"."projects"."tech_stack", "public"."projects"."category_id", "public"."projects"."github_url", "public"."projects"."live_url", "public"."projects"."thumbnail_url", "public"."projects"."images", "public"."projects"."is_featured", "public"."projects"."is_published", "public"."projects"."github_stars", "public"."projects"."github_forks", "public"."projects"."display_order", "public"."projects"."created_at", "public"."projects"."updated_at" FROM "public"."projects" WHERE "public"."projects"."is_published" = $1 ORDER BY "public"."projects"."display_order" ASC, "public"."projects"."created_at" DESC LIMIT $2 OFFSET $3
+prisma:query SELECT "public"."categories"."id", "public"."categories"."name", "public"."categories"."slug", "public"."categories"."color" FROM "public"."categories" WHERE "public"."categories"."id" IN ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) OFFSET $11
+[2026-05-01 13:05:47.069 +0000] INFO: request completed
+    reqId: "req-3"
+    res: {
+      "statusCode": 200
+    }
+    responseTime: 2155.929639816284
+[2026-05-01 13:05:47.087 +0000] INFO: incoming request
+    reqId: "req-4"
+    req: {
+      "method": "GET",
+      "url": "/api/skills",
+      "host": "portfolio-api-gateway:8000",
+      "remoteAddress": "172.26.0.3",
+      "remotePort": 49930
+    }
+prisma:query SELECT "public"."skills"."id", "public"."skills"."name", "public"."skills"."category", "public"."skills"."proficiency", "public"."skills"."icon_url", "public"."skills"."years_experience", "public"."skills"."is_featured", "public"."skills"."display_order" FROM "public"."skills" WHERE 1=1 ORDER BY "public"."skills"."category" ASC, "public"."skills"."display_order" ASC OFFSET $1
+[2026-05-01 13:05:47.303 +0000] INFO: request completed
+    reqId: "req-4"
+    res: {
+      "statusCode": 200
+    }
+    responseTime: 215.31463313102722
+[2026-05-01 13:05:47.315 +0000] INFO: incoming request
+    reqId: "req-5"
+    req: {
+      "method": "GET",
+      "url": "/api/experience",
+      "host": "portfolio-api-gateway:8000",
+      "remoteAddress": "172.26.0.3",
+      "remotePort": 49938
+    }
+prisma:query SELECT "public"."experience"."id", "public"."experience"."company", "public"."experience"."role", "public"."experience"."description", "public"."experience"."responsibilities", "public"."experience"."tech_stack", "public"."experience"."start_date", "public"."experience"."end_date", "public"."experience"."is_current", "public"."experience"."company_url", "public"."experience"."company_logo_url", "public"."experience"."location", "public"."experience"."display_order" FROM "public"."experience" WHERE 1=1 ORDER BY "public"."experience"."is_current" DESC, "public"."experience"."start_date" DESC OFFSET $1
+[2026-05-01 13:05:47.529 +0000] INFO: request completed
+    reqId: "req-5"
+    res: {
+      "statusCode": 200
+    }
+    responseTime: 213.97285079956055
+[2026-05-01 13:05:47.541 +0000] INFO: incoming request
+    reqId: "req-6"
+    req: {
+      "method": "GET",
+      "url": "/api/categories",
+      "host": "portfolio-api-gateway:8000",
+      "remoteAddress": "172.26.0.3",
+      "remotePort": 49946
+    }
+prisma:query SELECT "public"."categories"."id", "public"."categories"."name", "public"."categories"."slug", "public"."categories"."description", "public"."categories"."icon", "public"."categories"."color", "public"."categories"."is_visible", "public"."categories"."display_order", "public"."categories"."created_at", COALESCE("aggr_selection_0_Project"."_aggr_count_projects", 0) AS "_aggr_count_projects" FROM "public"."categories" LEFT JOIN (SELECT "public"."projects"."category_id", COUNT(*) AS "_aggr_count_projects" FROM "public"."projects" WHERE 1=1 GROUP BY "public"."projects"."category_id") AS "aggr_selection_0_Project" ON ("public"."categories"."id" = "aggr_selection_0_Project"."category_id") WHERE "public"."categories"."is_visible" = $1 ORDER BY "public"."categories"."display_order" ASC OFFSET $2
+[2026-05-01 13:05:47.759 +0000] INFO: request completed
+    reqId: "req-6"
+    res: {
+      "statusCode": 200
+    }
+    responseTime: 217.20212197303772
+[2026-05-01 13:05:51.846 +0000] INFO: request completed
+    reqId: "req-2"
+    res: {
+      "statusCode": 200
+    }
+    responseTime: 6993.402497053146
+[2026-05-01 13:06:27.361 +0000] INFO: incoming request
+    reqId: "req-7"
+    req: {
+      "method": "GET",
+      "url": "/api/categories",
+      "host": "enov8-india.enov8.com",
+      "remoteAddress": "172.26.0.1",
+      "remotePort": 40116
+    }
+prisma:query SELECT "public"."categories"."id", "public"."categories"."name", "public"."categories"."slug", "public"."categories"."description", "public"."categories"."icon", "public"."categories"."color", "public"."categories"."is_visible", "public"."categories"."display_order", "public"."categories"."created_at", COALESCE("aggr_selection_0_Project"."_aggr_count_projects", 0) AS "_aggr_count_projects" FROM "public"."categories" LEFT JOIN (SELECT "public"."projects"."category_id", COUNT(*) AS "_aggr_count_projects" FROM "public"."projects" WHERE 1=1 GROUP BY "public"."projects"."category_id") AS "aggr_selection_0_Project" ON ("public"."categories"."id" = "aggr_selection_0_Project"."category_id") WHERE "public"."categories"."is_visible" = $1 ORDER BY "public"."categories"."display_order" ASC OFFSET $2
+[2026-05-01 13:06:28.864 +0000] INFO: request completed
+    reqId: "req-7"
+    res: {
+      "statusCode": 200
+    }
+    responseTime: 1502.9622650146484
+ubuntu@ip-10-83-0-47:~/docker/Enov888$

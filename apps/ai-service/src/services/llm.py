@@ -3,10 +3,21 @@ from typing import AsyncGenerator
 import time
 
 from src.config import settings
-from src.core.prompts import SYSTEM_PROMPT
+from src.core.prompts import build_system_prompt, FALLBACK_PROMPT
+from src.services.context import get_portfolio_context
 from src.models.schemas import ChatMessage
 
 client = AsyncOpenAI(api_key=settings.openai_api_key)
+
+
+async def get_system_prompt() -> str:
+    """Get the system prompt with dynamic portfolio context."""
+    try:
+        context = await get_portfolio_context()
+        return build_system_prompt(context)
+    except Exception as e:
+        print(f"Error fetching context, using fallback: {e}")
+        return FALLBACK_PROMPT
 
 
 async def stream_chat_response(
@@ -16,6 +27,8 @@ async def stream_chat_response(
     """
     Stream chat response from OpenAI.
     
+    Fetches portfolio context first, then streams the response.
+    
     Yields SSE events:
     - delta: Contains partial content
     - done: Final event with metadata
@@ -23,8 +36,11 @@ async def stream_chat_response(
     start_time = time.time()
     total_tokens = 0
     
+    # Fetch dynamic system prompt with portfolio data
+    system_prompt = await get_system_prompt()
+    
     formatted_messages = [
-        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "system", "content": system_prompt},
         *[{"role": msg.role, "content": msg.content} for msg in messages],
     ]
     

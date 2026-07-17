@@ -1,0 +1,79 @@
+version: "3.8"
+
+services:
+  # ===========================================
+  # API Gateway - Node.js/Fastify Backend
+  # ===========================================
+  api-gateway:
+    image: prajwal270/portfolio-api-gateway:v1
+    container_name: portfolio-api-gateway
+    ports:
+      - "8000:8000"
+    environment:
+      - NODE_ENV=production
+      - PORT=8000
+      - DATABASE_URL=${DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - AI_SERVICE_URL=http://ai-service:8001
+      - CORS_ORIGIN=http://localhost:3000,http://127.0.0.1:3000
+    depends_on:
+      - ai-service
+    networks:
+      - portfolio-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # ===========================================
+  # AI Service - Python/FastAPI
+  # ===========================================
+  ai-service:
+    image: prajwal270/portfolio-ai-service:v1
+    container_name: portfolio-ai-service
+    ports:
+      - "8001:8001"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - API_GATEWAY_URL=http://api-gateway:8000
+      - CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+    networks:
+      - portfolio-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  # ===========================================
+  # Web Frontend - Next.js
+  # Uses API Proxy Pattern - API_URL read at runtime
+  # ===========================================
+  web:
+    image: prajwal270/portfolio-web:v2
+    container_name: portfolio-web
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - API_URL=http://api-gateway:8000
+    depends_on:
+      - api-gateway
+    networks:
+      - portfolio-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+networks:
+  portfolio-network:
+    driver: bridge

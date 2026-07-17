@@ -38,8 +38,9 @@ export function ChatContainer() {
     abortControllerRef.current = new AbortController();
 
     try {
+
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/chat/stream`,
+        `/api/chat/stream`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -53,6 +54,19 @@ export function ChatContainer() {
           signal: abortControllerRef.current.signal,
         }
       );
+
+      // const response = await fetch("/api/proxy/chat/stream", {
+      //   method: "POST",
+      //   headers: { "Content-Type": "application/json" },
+      //   body: JSON.stringify({
+      //     messages: [...messages, userMessage].map((m) => ({
+      //       role: m.role,
+      //       content: m.content,
+      //     })),
+      //     session_id: null,
+      //   }),
+      //   signal: abortControllerRef.current.signal,
+      // });
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);

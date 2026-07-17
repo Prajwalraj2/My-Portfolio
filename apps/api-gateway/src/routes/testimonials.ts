@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { prisma } from '@portfolio/database';
+import { prisma } from '../db/index.js';
 import { requireAdmin } from '../middleware/auth.js';
 
 // Validation schemas

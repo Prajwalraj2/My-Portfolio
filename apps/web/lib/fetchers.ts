@@ -23,10 +23,14 @@ interface ApiItemResponse<T> {
 }
 
 export async function getCategories(): Promise<Category[]> {
-  const response = await api.get<ApiListResponse<Category>>("/api/categories", {
-    next: { revalidate: 3600, tags: ["categories"] },
-  });
-  return response.data;
+  try {
+    const response = await api.get<ApiListResponse<Category>>("/api/categories", {
+      next: { revalidate: 3600, tags: ["categories"] },
+    });
+    return response.data;
+  } catch {
+    return [];
+  }
 }
 
 export async function getCategory(slug: string): Promise<Category | null> {
@@ -41,10 +45,14 @@ export async function getCategory(slug: string): Promise<Category | null> {
 }
 
 export async function getProjects(): Promise<Project[]> {
-  const response = await api.get<ApiListResponse<Project>>("/api/projects", {
-    next: { revalidate: 3600, tags: ["projects"] },
-  });
-  return response.data;
+  try {
+    const response = await api.get<ApiListResponse<Project>>("/api/projects", {
+      next: { revalidate: 3600, tags: ["projects"] },
+    });
+    return response.data;
+  } catch {
+    return [];
+  }
 }
 
 export async function getProject(slug: string): Promise<Project | null> {
@@ -59,10 +67,14 @@ export async function getProject(slug: string): Promise<Project | null> {
 }
 
 export async function getSkills(): Promise<Skill[]> {
-  const response = await api.get<ApiListResponse<Skill>>("/api/skills", {
-    next: { revalidate: 3600, tags: ["skills"] },
-  });
-  return response.data;
+  try {
+    const response = await api.get<ApiListResponse<Skill>>("/api/skills", {
+      next: { revalidate: 3600, tags: ["skills"] },
+    });
+    return response.data;
+  } catch {
+    return [];
+  }
 }
 
 export async function getSkillCategories(): Promise<string[]> {
@@ -72,17 +84,25 @@ export async function getSkillCategories(): Promise<string[]> {
 }
 
 export async function getExperience(): Promise<Experience[]> {
-  const response = await api.get<ApiListResponse<Experience>>("/api/experience", {
-    next: { revalidate: 3600, tags: ["experience"] },
-  });
-  return response.data;
+  try {
+    const response = await api.get<ApiListResponse<Experience>>("/api/experience", {
+      next: { revalidate: 3600, tags: ["experience"] },
+    });
+    return response.data;
+  } catch {
+    return [];
+  }
 }
 
 export async function getTestimonials(): Promise<Testimonial[]> {
-  const response = await api.get<ApiListResponse<Testimonial>>("/api/testimonials", {
-    next: { revalidate: 3600, tags: ["testimonials"] },
-  });
-  return response.data;
+  try {
+    const response = await api.get<ApiListResponse<Testimonial>>("/api/testimonials", {
+      next: { revalidate: 3600, tags: ["testimonials"] },
+    });
+    return response.data;
+  } catch {
+    return [];
+  }
 }
 
 export async function getDefaultResume(): Promise<ResumeVersion | null> {

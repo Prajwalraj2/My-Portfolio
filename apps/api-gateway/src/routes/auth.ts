@@ -1,9 +1,8 @@
 import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { prisma } from '@portfolio/database';
+import { prisma } from '../db/index.js';
 import { hashPassword, verifyPassword } from '../utils/password.js';
 import { requireAuth } from '../middleware/auth.js';
-import '../types/fastify.d.js';
 
 // ============================================
 // TOTP IMPORTS (COMMENTED FOR LATER)

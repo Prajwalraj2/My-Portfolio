@@ -1,5 +1,12 @@
+// Before
+// const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+// After
+const isServer = typeof window === "undefined";
+const API_URL = isServer
+  ? process.env.API_URL        // Server: runtime env var, direct to backend
+  : "/api/proxy";              // Client: proxy route, no URL needed
+
 
 type FetchOptions = {
   method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
@@ -25,6 +32,15 @@ class ApiError extends Error {
   }
 }
 
+// function getApiUrl(endpoint: string): string {
+//   // Convert /api/xxx to /api/proxy/xxx
+//   // This routes through our Next.js proxy which reads API_URL at runtime
+//   if (endpoint.startsWith("/api/")) {
+//     return `/api/proxy/${endpoint.slice(5)}`;
+//   }
+//   return `/api/proxy${endpoint}`;
+// }
+
 async function fetcher<T>(endpoint: string, options: FetchOptions = {}): Promise<T> {
   const { method = "GET", body, headers = {}, cache, next } = options;
 
@@ -43,6 +59,8 @@ async function fetcher<T>(endpoint: string, options: FetchOptions = {}): Promise
   }
 
   const response = await fetch(`${API_URL}${endpoint}`, config);
+  // const url = getApiUrl(endpoint);
+  // const response = await fetch(url, config);
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));

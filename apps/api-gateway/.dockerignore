@@ -1,0 +1,43 @@
+# Dependencies
+node_modules
+
+# Build output
+dist
+
+# Generated files (will be regenerated in Docker)
+src/generated
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Test files
+*.test.ts
+*.spec.ts
+__tests__
+coverage
+
+# Documentation
+README.md
+docs
+
+# Docker
+Dockerfile
+.dockerignore
+docker-compose*.yml

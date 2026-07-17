@@ -1,5 +1,4 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import '../types/fastify.d.js';
 
 // Middleware to require authentication
 export async function requireAuth(
@@ -53,7 +52,7 @@ export async function requireAdmin(
 // ============================================
 
 /*
-import { prisma } from '@portfolio/database';
+import { prisma } from '../db/index.js';
 
 // Middleware to check IP allowlist for admin
 export async function checkIPAllowlist(
