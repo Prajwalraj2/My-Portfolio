@@ -24,11 +24,15 @@ class ChatRequest(BaseModel):
         default=None,
         description="Optional session ID for conversation continuity",
     )
+    time_zone: str | None = Field(
+        default=None,
+        description="Visitor's IANA timezone (e.g. from the browser) so slots are shown correctly",
+    )
 
 
 class ChatStreamEvent(BaseModel):
     """A single SSE event in the chat stream."""
-    event: Literal["delta", "done", "error"]
+    event: Literal["delta", "progress", "tool_start", "tool_end", "done", "error"]
     data: dict
 
 

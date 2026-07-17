@@ -15,19 +15,149 @@ model User {
   email         String    @unique
   name          String?
   avatarUrl     String?   @map("avatar_url")
-  provider      String?   // 'google', 'github'
-  providerId    String?   @map("provider_id")
+  passwordHash  String?   @map("password_hash") // null for social-only users
+  emailVerified Boolean   @default(false) @map("email_verified")
   role          String    @default("user") // 'user', 'admin'
   isActive      Boolean   @default(true) @map("is_active")
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
 
-  sessions      Session[]
-  chatSessions  ChatSession[]
-  mcpCredentials McpCredential[]
+  sessions        Session[]
+  oauthAccounts   OAuthAccount[]
+  apiKeys         ApiKey[]
+  meetings        Meeting[]
+  chatSessions    ChatSession[]
+  mcpCredentials  McpCredential[]
   analyticsEvents AnalyticsEvent[]
 
   @@map("users")
+}
+
+model OAuthAccount {
+  id             String   @id @default(uuid())
+  userId         String   @map("user_id")
+  provider       String   // 'google' | 'github'
+  providerUserId String   @map("provider_user_id") // id from Google/GitHub
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerUserId])
+  @@index([userId])
+  @@map("oauth_accounts")
+}
+
+model ApiKey {
+  id               String    @id @default(uuid())
+  userId           String    @map("user_id")
+  name             String
+  keyHash          String    @unique @map("key_hash") // SHA-256 of the raw key
+  prefix           String    // display only, e.g. "pk_live_ab12"
+  scopes           String[]  @default([]) // tool names/categories (enforced P2+)
+  rateLimitPerHour Int       @default(120) @map("rate_limit_per_hour")
+  lastUsedAt       DateTime? @map("last_used_at")
+  expiresAt        DateTime? @map("expires_at")
+  revokedAt        DateTime? @map("revoked_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("api_keys")
+}
+
+// Local MIRROR of a Cal.com booking (Cal.com owns scheduling; we mirror for our
+// admin dashboard, AI awareness, and Slack notifications).
+model Meeting {
+  id               String    @id @default(uuid())
+  calBookingId     String?   @unique @map("cal_booking_id")
+  calUid           String?   @unique @map("cal_uid")
+  userId           String?   @map("user_id") // our user, if booked while logged in
+  attendeeName     String    @map("attendee_name")
+  attendeeEmail    String    @map("attendee_email")
+  attendeeTimeZone String?   @map("attendee_time_zone")
+  title            String?
+  topic            String?
+  startTime        DateTime  @map("start_time")
+  endTime          DateTime? @map("end_time")
+  meetingUrl       String?   @map("meeting_url") // Google Meet link from Cal.com
+  status           String    @default("accepted") // accepted|pending|cancelled|rescheduled
+  source           String?   // website|agent|mcp_client|calcom
+  rawPayload       Json?     @map("raw_payload")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  user             User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([startTime])
+  @@map("meetings")
+}
+
+// Audit of outbound notifications (Slack/email) — feeds the admin dashboard later.
+model NotificationLog {
+  id        String   @id @default(uuid())
+  channel   String   // 'slack' | 'email'
+  kind      String   // 'inquiry' | 'meeting' | 'testimonial' | 'contact'
+  status    String   // 'sent' | 'skipped' | 'failed'
+  subject   String?
+  error     String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("notification_logs")
+}
+
+// ============================================
+// SITE PROFILE / GUIDES / BLOGS
+// ============================================
+
+// Singleton row: the owner's bio/links, editable by admin. Feeds /api/portfolio.
+model Profile {
+  id        String   @id @default(uuid())
+  name      String?
+  headline  String?
+  bio       String?
+  location  String?
+  email     String?
+  avatarUrl String?  @map("avatar_url")
+  resumeUrl String?  @map("resume_url")
+  socials   Json? // { github, linkedin, twitter, website, ... }
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("profile")
+}
+
+model Guide {
+  id           String   @id @default(uuid())
+  slug         String   @unique
+  title        String
+  summary      String?
+  bodyMd       String   @map("body_md")
+  category     String?
+  displayOrder Int      @default(0) @map("display_order")
+  isPublished  Boolean  @default(true) @map("is_published")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("guides")
+}
+
+model Blog {
+  id          String    @id @default(uuid())
+  slug        String    @unique
+  title       String
+  excerpt     String?
+  contentMd   String    @map("content_md")
+  coverUrl    String?   @map("cover_url")
+  tags        String[]  @default([])
+  status      String    @default("draft") // 'draft' | 'published'
+  publishedAt DateTime? @map("published_at")
+  views       Int       @default(0)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@map("blogs")
 }
 
 model AdminCredential {

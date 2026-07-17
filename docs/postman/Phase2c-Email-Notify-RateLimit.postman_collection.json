@@ -1,0 +1,91 @@
+{
+  "info": {
+    "name": "Portfolio API — Phase 2c (Email + Notifications + Rate Limit)",
+    "description": "Tests the contact email (send_email), notifications on inquiry/testimonial submit (check your Slack + prajwal2871@gmail.com inbox), and per-API-key rate limiting (429 after the limit). Run 'Login' first to create keys.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8000" },
+    { "key": "email", "value": "test@example.com" },
+    { "key": "password", "value": "password123" },
+    { "key": "rlKey", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "0. Login (session, to create keys)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}" },
+        "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api","auth","login"] }
+      }
+    },
+    {
+      "name": "1. Contact email (send_email) — check your inbox",
+      "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.test('200', () => pm.expect(pm.response.code).to.eql(200));" ] } } ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"name\": \"Jane Recruiter\",\n  \"email\": \"jane@example.com\",\n  \"subject\": \"Interested in working together\",\n  \"message\": \"Hi Prajwal,\\n\\nLoved your portfolio. Can we chat?\"\n}" },
+        "url": { "raw": "{{baseUrl}}/api/email/contact", "host": ["{{baseUrl}}"], "path": ["api","email","contact"] }
+      }
+    },
+    {
+      "name": "2. Submit inquiry — check Slack + email",
+      "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.test('201', () => pm.expect(pm.response.code).to.eql(201));" ] } } ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"name\": \"Acme Corp\",\n  \"email\": \"hiring@acme.com\",\n  \"company\": \"Acme\",\n  \"budget\": \"$10k-20k\",\n  \"timeline\": \"1 month\",\n  \"description\": \"We want to build an internal AI tool and need a DevOps + AI engineer.\"\n}" },
+        "url": { "raw": "{{baseUrl}}/api/inquiries", "host": ["{{baseUrl}}"], "path": ["api","inquiries"] }
+      }
+    },
+    {
+      "name": "3. Submit testimonial — check Slack + email",
+      "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.test('201', () => pm.expect(pm.response.code).to.eql(201));" ] } } ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"authorName\": \"John Client\",\n  \"authorRole\": \"CTO\",\n  \"authorCompany\": \"Startup Inc\",\n  \"content\": \"Prajwal delivered a rock-solid system on time. Highly recommend.\",\n  \"rating\": 5\n}" },
+        "url": { "raw": "{{baseUrl}}/api/testimonials", "host": ["{{baseUrl}}"], "path": ["api","testimonials"] }
+      }
+    },
+    {
+      "name": "4. Create API key with rateLimitPerHour=3",
+      "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('201', () => pm.expect(pm.response.code).to.eql(201));",
+        "const j = pm.response.json();",
+        "pm.collectionVariables.set('rlKey', j.data.key);"
+      ] } } ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"name\": \"rate-limit test\",\n  \"rateLimitPerHour\": 3\n}" },
+        "url": { "raw": "{{baseUrl}}/api/apikeys", "host": ["{{baseUrl}}"], "path": ["api","apikeys"] }
+      }
+    },
+    {
+      "name": "5. Key call #1 (expect 200)",
+      "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.test('200', () => pm.expect(pm.response.code).to.eql(200));" ] } } ],
+      "request": { "method": "GET", "header": [ { "key": "Authorization", "value": "Bearer {{rlKey}}" } ], "url": { "raw": "{{baseUrl}}/api/github", "host": ["{{baseUrl}}"], "path": ["api","github"] } }
+    },
+    {
+      "name": "6. Key call #2 (expect 200)",
+      "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.test('200', () => pm.expect(pm.response.code).to.eql(200));" ] } } ],
+      "request": { "method": "GET", "header": [ { "key": "Authorization", "value": "Bearer {{rlKey}}" } ], "url": { "raw": "{{baseUrl}}/api/github", "host": ["{{baseUrl}}"], "path": ["api","github"] } }
+    },
+    {
+      "name": "7. Key call #3 (expect 200)",
+      "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.test('200', () => pm.expect(pm.response.code).to.eql(200));" ] } } ],
+      "request": { "method": "GET", "header": [ { "key": "Authorization", "value": "Bearer {{rlKey}}" } ], "url": { "raw": "{{baseUrl}}/api/github", "host": ["{{baseUrl}}"], "path": ["api","github"] } }
+    },
+    {
+      "name": "8. Key call #4 (expect 429 rate limited)",
+      "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('429 rate limited', () => pm.expect(pm.response.code).to.eql(429));",
+        "pm.test('has Retry-After', () => pm.expect(pm.response.headers.get('Retry-After')).to.be.a('string'));"
+      ] } } ],
+      "request": { "method": "GET", "header": [ { "key": "Authorization", "value": "Bearer {{rlKey}}" } ], "url": { "raw": "{{baseUrl}}/api/github", "host": ["{{baseUrl}}"], "path": ["api","github"] } }
+    }
+  ]
+}

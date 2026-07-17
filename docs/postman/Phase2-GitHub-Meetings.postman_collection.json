@@ -1,0 +1,179 @@
+{
+  "info": {
+    "name": "Portfolio API — Phase 2a (GitHub + Meetings)",
+    "description": "Tests GitHub read + Cal.com-backed meetings (slots, booking via session and via API key, scope enforcement, cancel). Run 'Login' first so the session cookie is set. The slots request auto-captures the first available slot into {{slotStart}}, which the booking requests use.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8000" },
+    { "key": "email", "value": "test@example.com" },
+    { "key": "password", "value": "password123" },
+    { "key": "timeZone", "value": "Asia/Kolkata" },
+    { "key": "slotStart", "value": "" },
+    { "key": "slotStart_q", "value": "" },
+    { "key": "slotEnd_q", "value": "" },
+    { "key": "apiKeyScoped", "value": "" },
+    { "key": "apiKeyNoScope", "value": "" },
+    { "key": "meetingUid", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "0. Login (get session cookie)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}" },
+        "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login"] }
+      }
+    },
+    {
+      "name": "1. GitHub — get curated data",
+      "event": [
+        { "listen": "test", "script": { "type": "text/javascript", "exec": [
+          "pm.test('200', () => pm.expect(pm.response.code).to.eql(200));",
+          "const j = pm.response.json();",
+          "pm.test('has profile + repos', () => { pm.expect(j.data.profile.login).to.be.a('string'); pm.expect(j.data.topRepos).to.be.an('array'); });"
+        ] } }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}/api/github", "host": ["{{baseUrl}}"], "path": ["api", "github"] }
+      }
+    },
+    {
+      "name": "2. Meetings — get available slots",
+      "event": [
+        { "listen": "prerequest", "script": { "type": "text/javascript", "exec": [
+          "const now = new Date();",
+          "const start = new Date(now.getTime() + 24*60*60*1000);",
+          "const end = new Date(now.getTime() + 14*24*60*60*1000);",
+          "pm.collectionVariables.set('slotStart_q', start.toISOString());",
+          "pm.collectionVariables.set('slotEnd_q', end.toISOString());"
+        ] } },
+        { "listen": "test", "script": { "type": "text/javascript", "exec": [
+          "pm.test('200', () => pm.expect(pm.response.code).to.eql(200));",
+          "const j = pm.response.json();",
+          "const slots = (j.data && j.data.slots) || {};",
+          "const dates = Object.keys(slots);",
+          "if (dates.length && slots[dates[0]].length) {",
+          "  const first = slots[dates[0]][0];",
+          "  pm.collectionVariables.set('slotStart', first.time || first.start);",
+          "  console.log('captured slotStart =', pm.collectionVariables.get('slotStart'));",
+          "} else { console.log('No slots — check Cal.com availability + event type config'); }"
+        ] } }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/meetings/slots?startTime={{slotStart_q}}&endTime={{slotEnd_q}}&timeZone={{timeZone}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "meetings", "slots"],
+          "query": [
+            { "key": "startTime", "value": "{{slotStart_q}}" },
+            { "key": "endTime", "value": "{{slotEnd_q}}" },
+            { "key": "timeZone", "value": "{{timeZone}}" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "3. Meetings — book (as logged-in user)",
+      "event": [
+        { "listen": "test", "script": { "type": "text/javascript", "exec": [
+          "pm.test('201 created', () => pm.expect(pm.response.code).to.eql(201));",
+          "const j = pm.response.json();",
+          "if (j.data && j.data.calUid) pm.collectionVariables.set('meetingUid', j.data.calUid);"
+        ] } }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"start\": \"{{slotStart}}\",\n  \"name\": \"Test Visitor\",\n  \"email\": \"visitor@example.com\",\n  \"timeZone\": \"{{timeZone}}\",\n  \"topic\": \"Intro chat about a project\"\n}" },
+        "url": { "raw": "{{baseUrl}}/api/meetings", "host": ["{{baseUrl}}"], "path": ["api", "meetings"] }
+      }
+    },
+    {
+      "name": "4. Meetings — my meetings",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}/api/meetings/mine", "host": ["{{baseUrl}}"], "path": ["api", "meetings", "mine"] }
+      }
+    },
+    {
+      "name": "5. API key WITH meetings:write",
+      "event": [
+        { "listen": "test", "script": { "type": "text/javascript", "exec": [
+          "const j = pm.response.json();",
+          "pm.collectionVariables.set('apiKeyScoped', j.data.key);"
+        ] } }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"name\": \"scoped key\",\n  \"scopes\": [\"meetings:write\"]\n}" },
+        "url": { "raw": "{{baseUrl}}/api/apikeys", "host": ["{{baseUrl}}"], "path": ["api", "apikeys"] }
+      }
+    },
+    {
+      "name": "6. Book via scoped key (expect 201)",
+      "event": [
+        { "listen": "test", "script": { "type": "text/javascript", "exec": [
+          "pm.test('201', () => pm.expect(pm.response.code).to.eql(201));"
+        ] } }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{apiKeyScoped}}" }
+        ],
+        "body": { "mode": "raw", "raw": "{\n  \"start\": \"{{slotStart}}\",\n  \"name\": \"MCP Visitor\",\n  \"email\": \"mcp@example.com\",\n  \"timeZone\": \"{{timeZone}}\",\n  \"topic\": \"Booked via API key\"\n}" },
+        "url": { "raw": "{{baseUrl}}/api/meetings", "host": ["{{baseUrl}}"], "path": ["api", "meetings"] }
+      }
+    },
+    {
+      "name": "7. API key WITHOUT scopes",
+      "event": [
+        { "listen": "test", "script": { "type": "text/javascript", "exec": [
+          "const j = pm.response.json();",
+          "pm.collectionVariables.set('apiKeyNoScope', j.data.key);"
+        ] } }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"name\": \"no-scope key\",\n  \"scopes\": []\n}" },
+        "url": { "raw": "{{baseUrl}}/api/apikeys", "host": ["{{baseUrl}}"], "path": ["api", "apikeys"] }
+      }
+    },
+    {
+      "name": "8. Book via no-scope key (expect 403)",
+      "event": [
+        { "listen": "test", "script": { "type": "text/javascript", "exec": [
+          "pm.test('403 forbidden', () => pm.expect(pm.response.code).to.eql(403));"
+        ] } }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{apiKeyNoScope}}" }
+        ],
+        "body": { "mode": "raw", "raw": "{\n  \"start\": \"{{slotStart}}\",\n  \"name\": \"Blocked\",\n  \"email\": \"blocked@example.com\",\n  \"timeZone\": \"{{timeZone}}\"\n}" },
+        "url": { "raw": "{{baseUrl}}/api/meetings", "host": ["{{baseUrl}}"], "path": ["api", "meetings"] }
+      }
+    },
+    {
+      "name": "9. Meetings — cancel (uses {{meetingUid}})",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"reason\": \"testing cancel\"\n}" },
+        "url": { "raw": "{{baseUrl}}/api/meetings/{{meetingUid}}/cancel", "host": ["{{baseUrl}}"], "path": ["api", "meetings", "{{meetingUid}}", "cancel"] }
+      }
+    }
+  ]
+}

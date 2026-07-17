@@ -2,6 +2,7 @@ import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { prisma } from '../db/index.js';
 import { requireAdmin } from '../middleware/auth.js';
+import { notifyPrajwal } from '../services/notify.service.js';
 
 // Validation schemas
 const testimonialStatusEnum = z.enum(['pending', 'approved', 'rejected']);
@@ -132,9 +133,16 @@ export async function testimonialRoutes(app: FastifyInstance) {
         status: 'pending',
       },
     });
-    
+
+    await notifyPrajwal('testimonial', `New testimonial from ${testimonial.authorName}`, [
+      `Role: ${testimonial.authorRole ?? '—'}${testimonial.authorCompany ? ` @ ${testimonial.authorCompany}` : ''}`,
+      `Rating: ${testimonial.rating ?? '—'}`,
+      `Content: ${testimonial.content.slice(0, 300)}`,
+      `Status: pending approval`,
+    ]);
+
     reply.status(201);
-    return { 
+    return {
       data: testimonial,
       message: 'Testimonial submitted successfully. It will be visible after approval.',
     };

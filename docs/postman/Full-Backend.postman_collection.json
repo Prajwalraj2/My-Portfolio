@@ -1,0 +1,269 @@
+{
+  "info": {
+    "name": "Portfolio API — FULL Backend (Phases 1–2)",
+    "description": "End-to-end test of the entire gateway. Run with the Collection Runner top-to-bottom: it seeds an admin token + user session, then exercises every resource (public reads, admin CRUD lifecycles, submissions+notifications, meetings, keys, rate limiting). Prereqs: gateway running on :8000; admin seeded (pnpm seed:admin); Cal.com/Resend/Slack configured in .env; ai-service running for the Chat folder.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8000" },
+    { "key": "userEmail", "value": "test@example.com" },
+    { "key": "userPassword", "value": "password123" },
+    { "key": "adminEmail", "value": "admin@prajwalraj.me" },
+    { "key": "adminPassword", "value": "AdminPassword123!" },
+    { "key": "adminToken", "value": "" },
+    { "key": "apiKey", "value": "" },
+    { "key": "categoryId", "value": "" },
+    { "key": "categorySlug", "value": "test-category" },
+    { "key": "projectSlug", "value": "test-project" },
+    { "key": "skillId", "value": "" },
+    { "key": "experienceId", "value": "" },
+    { "key": "testimonialId", "value": "" },
+    { "key": "inquiryId", "value": "" },
+    { "key": "resumeId", "value": "" },
+    { "key": "guideSlug", "value": "test-guide" },
+    { "key": "blogSlug", "value": "test-blog" },
+    { "key": "timeZone", "value": "Asia/Kolkata" },
+    { "key": "slotStart", "value": "" },
+    { "key": "slotStart_q", "value": "" },
+    { "key": "slotEnd_q", "value": "" },
+    { "key": "meetingUid", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "00 Health",
+      "item": [
+        { "name": "GET /health", "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/health", "host": ["{{baseUrl}}"], "path": ["health"] } } },
+        { "name": "GET /ready", "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/ready", "host": ["{{baseUrl}}"], "path": ["ready"] } } }
+      ]
+    },
+    {
+      "name": "01 Auth — Admin (run first)",
+      "item": [
+        {
+          "name": "POST /api/auth/admin/login (capture token)",
+          "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200', () => pm.expect(pm.response.code).to.eql(200));",
+            "const j = pm.response.json(); if (j.data && j.data.accessToken) pm.collectionVariables.set('adminToken', j.data.accessToken);"
+          ] } } ],
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}" }, "url": { "raw": "{{baseUrl}}/api/auth/admin/login", "host": ["{{baseUrl}}"], "path": ["api","auth","admin","login"] } }
+        },
+        { "name": "GET /api/auth/admin/me", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "url": { "raw": "{{baseUrl}}/api/auth/admin/me", "host": ["{{baseUrl}}"], "path": ["api","auth","admin","me"] } } }
+      ]
+    },
+    {
+      "name": "02 Auth — User",
+      "item": [
+        {
+          "name": "POST /api/auth/signup (ok or 409 if exists)",
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\",\n  \"name\": \"Test User\"\n}" }, "url": { "raw": "{{baseUrl}}/api/auth/signup", "host": ["{{baseUrl}}"], "path": ["api","auth","signup"] } }
+        },
+        {
+          "name": "POST /api/auth/login (sets sid cookie)",
+          "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.test('200', () => pm.expect(pm.response.code).to.eql(200));" ] } } ],
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}" }, "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api","auth","login"] } }
+        },
+        { "name": "GET /api/auth/me (session)", "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/auth/me", "host": ["{{baseUrl}}"], "path": ["api","auth","me"] } } }
+      ]
+    },
+    {
+      "name": "03 API Keys",
+      "item": [
+        {
+          "name": "POST /api/apikeys (capture key)",
+          "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('201', () => pm.expect(pm.response.code).to.eql(201));",
+            "const j = pm.response.json(); pm.collectionVariables.set('apiKey', j.data.key);"
+          ] } } ],
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"name\": \"full-test key\",\n  \"scopes\": [\"meetings:write\"]\n}" }, "url": { "raw": "{{baseUrl}}/api/apikeys", "host": ["{{baseUrl}}"], "path": ["api","apikeys"] } }
+        },
+        { "name": "GET /api/apikeys", "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/apikeys", "host": ["{{baseUrl}}"], "path": ["api","apikeys"] } } },
+        { "name": "GET /api/auth/me via API key", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{apiKey}}" }], "url": { "raw": "{{baseUrl}}/api/auth/me", "host": ["{{baseUrl}}"], "path": ["api","auth","me"] } } }
+      ]
+    },
+    {
+      "name": "04 Categories (admin CRUD)",
+      "item": [
+        {
+          "name": "POST create (capture id)",
+          "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "const j = pm.response.json(); if (j.data) pm.collectionVariables.set('categoryId', j.data.id);"
+          ] } } ],
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" },{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "body": { "mode": "raw", "raw": "{\n  \"name\": \"Test Category\",\n  \"slug\": \"{{categorySlug}}\"\n}" }, "url": { "raw": "{{baseUrl}}/api/categories", "host": ["{{baseUrl}}"], "path": ["api","categories"] } }
+        },
+        { "name": "GET / (public)", "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/categories", "host": ["{{baseUrl}}"], "path": ["api","categories"] } } },
+        { "name": "GET /:slug (public)", "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/categories/{{categorySlug}}", "host": ["{{baseUrl}}"], "path": ["api","categories","{{categorySlug}}"] } } },
+        { "name": "PUT /:slug (admin)", "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" },{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "body": { "mode": "raw", "raw": "{\n  \"description\": \"updated\"\n}" }, "url": { "raw": "{{baseUrl}}/api/categories/{{categorySlug}}", "host": ["{{baseUrl}}"], "path": ["api","categories","{{categorySlug}}"] } } }
+      ]
+    },
+    {
+      "name": "05 Projects (admin CRUD)",
+      "item": [
+        {
+          "name": "POST create (needs categoryId)",
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" },{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "body": { "mode": "raw", "raw": "{\n  \"slug\": \"{{projectSlug}}\",\n  \"title\": \"Test Project\",\n  \"description\": \"A test\",\n  \"categoryId\": \"{{categoryId}}\",\n  \"techStack\": [\"TypeScript\"],\n  \"isFeatured\": true\n}" }, "url": { "raw": "{{baseUrl}}/api/projects", "host": ["{{baseUrl}}"], "path": ["api","projects"] } }
+        },
+        { "name": "GET / (public)", "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/projects", "host": ["{{baseUrl}}"], "path": ["api","projects"] } } },
+        { "name": "GET /featured", "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/projects/featured", "host": ["{{baseUrl}}"], "path": ["api","projects","featured"] } } },
+        { "name": "GET /:slug", "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/projects/{{projectSlug}}", "host": ["{{baseUrl}}"], "path": ["api","projects","{{projectSlug}}"] } } },
+        { "name": "PUT /:slug (admin)", "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" },{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "body": { "mode": "raw", "raw": "{\n  \"title\": \"Test Project (updated)\"\n}" }, "url": { "raw": "{{baseUrl}}/api/projects/{{projectSlug}}", "host": ["{{baseUrl}}"], "path": ["api","projects","{{projectSlug}}"] } } },
+        { "name": "DELETE /:slug (admin)", "request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "url": { "raw": "{{baseUrl}}/api/projects/{{projectSlug}}", "host": ["{{baseUrl}}"], "path": ["api","projects","{{projectSlug}}"] } } }
+      ]
+    },
+    {
+      "name": "06 Skills (admin CRUD)",
+      "item": [
+        {
+          "name": "POST create (capture id)",
+          "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "const j = pm.response.json(); if (j.data) pm.collectionVariables.set('skillId', j.data.id);" ] } } ],
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" },{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "body": { "mode": "raw", "raw": "{\n  \"name\": \"Kubernetes\",\n  \"category\": \"devops\",\n  \"proficiency\": 90,\n  \"isFeatured\": true\n}" }, "url": { "raw": "{{baseUrl}}/api/skills", "host": ["{{baseUrl}}"], "path": ["api","skills"] } }
+        },
+        { "name": "GET / (public)", "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/skills", "host": ["{{baseUrl}}"], "path": ["api","skills"] } } },
+        { "name": "GET /grouped", "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/skills/grouped", "host": ["{{baseUrl}}"], "path": ["api","skills","grouped"] } } },
+        { "name": "PUT /:id (admin)", "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" },{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "body": { "mode": "raw", "raw": "{\n  \"proficiency\": 95\n}" }, "url": { "raw": "{{baseUrl}}/api/skills/{{skillId}}", "host": ["{{baseUrl}}"], "path": ["api","skills","{{skillId}}"] } } },
+        { "name": "DELETE /:id (admin)", "request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "url": { "raw": "{{baseUrl}}/api/skills/{{skillId}}", "host": ["{{baseUrl}}"], "path": ["api","skills","{{skillId}}"] } } }
+      ]
+    },
+    {
+      "name": "07 Experience (admin CRUD)",
+      "item": [
+        {
+          "name": "POST create (capture id)",
+          "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "const j = pm.response.json(); if (j.data) pm.collectionVariables.set('experienceId', j.data.id);" ] } } ],
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" },{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "body": { "mode": "raw", "raw": "{\n  \"company\": \"Enov8\",\n  \"role\": \"Engineer\",\n  \"startDate\": \"2024-01-01\",\n  \"isCurrent\": true,\n  \"techStack\": [\"AWS\"]\n}" }, "url": { "raw": "{{baseUrl}}/api/experience", "host": ["{{baseUrl}}"], "path": ["api","experience"] } }
+        },
+        { "name": "GET / (public)", "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/experience", "host": ["{{baseUrl}}"], "path": ["api","experience"] } } },
+        { "name": "GET /current", "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/experience/current", "host": ["{{baseUrl}}"], "path": ["api","experience","current"] } } },
+        { "name": "DELETE /:id (admin)", "request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "url": { "raw": "{{baseUrl}}/api/experience/{{experienceId}}", "host": ["{{baseUrl}}"], "path": ["api","experience","{{experienceId}}"] } } }
+      ]
+    },
+    {
+      "name": "08 Resume (admin CRUD)",
+      "item": [
+        {
+          "name": "POST /versions (capture id)",
+          "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "const j = pm.response.json(); if (j.data) pm.collectionVariables.set('resumeId', j.data.id);" ] } } ],
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" },{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "body": { "mode": "raw", "raw": "{\n  \"version\": \"v1\",\n  \"label\": \"2026\",\n  \"s3Url\": \"https://example.com/resume.pdf\",\n  \"isDefault\": true\n}" }, "url": { "raw": "{{baseUrl}}/api/resume/versions", "host": ["{{baseUrl}}"], "path": ["api","resume","versions"] } }
+        },
+        { "name": "GET / (public default)", "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/resume", "host": ["{{baseUrl}}"], "path": ["api","resume"] } } },
+        { "name": "GET /download (public)", "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/resume/download", "host": ["{{baseUrl}}"], "path": ["api","resume","download"] } } },
+        { "name": "GET /stats (admin)", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "url": { "raw": "{{baseUrl}}/api/resume/stats", "host": ["{{baseUrl}}"], "path": ["api","resume","stats"] } } }
+      ]
+    },
+    {
+      "name": "09 Portfolio & Profile",
+      "item": [
+        { "name": "PUT /api/profile (admin)", "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" },{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "body": { "mode": "raw", "raw": "{\n  \"name\": \"Prajwal Raj\",\n  \"headline\": \"DevOps & AI Engineer\",\n  \"bio\": \"I build enterprise-grade systems.\",\n  \"socials\": { \"github\": \"https://github.com/Prajwalraj2\" }\n}" }, "url": { "raw": "{{baseUrl}}/api/profile", "host": ["{{baseUrl}}"], "path": ["api","profile"] } } },
+        { "name": "GET /api/profile (public)", "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/profile", "host": ["{{baseUrl}}"], "path": ["api","profile"] } } },
+        { "name": "GET /api/portfolio (aggregate)", "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/portfolio", "host": ["{{baseUrl}}"], "path": ["api","portfolio"] } } }
+      ]
+    },
+    {
+      "name": "10 Guides (admin CRUD)",
+      "item": [
+        { "name": "POST create (admin)", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" },{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "body": { "mode": "raw", "raw": "{\n  \"slug\": \"{{guideSlug}}\",\n  \"title\": \"Test Guide\",\n  \"bodyMd\": \"# Hi\"\n}" }, "url": { "raw": "{{baseUrl}}/api/guides", "host": ["{{baseUrl}}"], "path": ["api","guides"] } } },
+        { "name": "GET / (public)", "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/guides", "host": ["{{baseUrl}}"], "path": ["api","guides"] } } },
+        { "name": "GET /:slug (public)", "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/guides/{{guideSlug}}", "host": ["{{baseUrl}}"], "path": ["api","guides","{{guideSlug}}"] } } },
+        { "name": "DELETE /:slug (admin)", "request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "url": { "raw": "{{baseUrl}}/api/guides/{{guideSlug}}", "host": ["{{baseUrl}}"], "path": ["api","guides","{{guideSlug}}"] } } }
+      ]
+    },
+    {
+      "name": "11 Blogs (admin CRUD)",
+      "item": [
+        { "name": "POST create published (admin)", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" },{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "body": { "mode": "raw", "raw": "{\n  \"slug\": \"{{blogSlug}}\",\n  \"title\": \"Test Blog\",\n  \"contentMd\": \"# Hi\",\n  \"tags\": [\"devops\"],\n  \"status\": \"published\"\n}" }, "url": { "raw": "{{baseUrl}}/api/blogs", "host": ["{{baseUrl}}"], "path": ["api","blogs"] } } },
+        { "name": "GET / (public)", "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/blogs", "host": ["{{baseUrl}}"], "path": ["api","blogs"] } } },
+        { "name": "GET /:slug (public, +view)", "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/blogs/{{blogSlug}}", "host": ["{{baseUrl}}"], "path": ["api","blogs","{{blogSlug}}"] } } },
+        { "name": "DELETE /:slug (admin)", "request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "url": { "raw": "{{baseUrl}}/api/blogs/{{blogSlug}}", "host": ["{{baseUrl}}"], "path": ["api","blogs","{{blogSlug}}"] } } }
+      ]
+    },
+    {
+      "name": "12 GitHub",
+      "item": [
+        { "name": "GET /api/github", "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/github", "host": ["{{baseUrl}}"], "path": ["api","github"] } } },
+        { "name": "POST /api/github/refresh (admin)", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "url": { "raw": "{{baseUrl}}/api/github/refresh", "host": ["{{baseUrl}}"], "path": ["api","github","refresh"] } } }
+      ]
+    },
+    {
+      "name": "13 Meetings (Cal.com)",
+      "item": [
+        {
+          "name": "GET /slots (capture first slot)",
+          "event": [
+            { "listen": "prerequest", "script": { "type": "text/javascript", "exec": [
+              "const now=new Date();",
+              "pm.collectionVariables.set('slotStart_q', new Date(now.getTime()+864e5).toISOString());",
+              "pm.collectionVariables.set('slotEnd_q', new Date(now.getTime()+12096e5).toISOString());"
+            ] } },
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [
+              "const j=pm.response.json(); const s=(j.data&&j.data.slots)||{}; const d=Object.keys(s);",
+              "if(d.length&&s[d[0]].length){const f=s[d[0]][0]; pm.collectionVariables.set('slotStart', f.start||f.time);}"
+            ] } }
+          ],
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/meetings/slots?startTime={{slotStart_q}}&endTime={{slotEnd_q}}&timeZone={{timeZone}}", "host": ["{{baseUrl}}"], "path": ["api","meetings","slots"], "query": [ { "key": "startTime", "value": "{{slotStart_q}}" }, { "key": "endTime", "value": "{{slotEnd_q}}" }, { "key": "timeZone", "value": "{{timeZone}}" } ] } }
+        },
+        {
+          "name": "POST / book (session; capture uid)",
+          "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "const j=pm.response.json(); if(j.data&&j.data.calUid) pm.collectionVariables.set('meetingUid', j.data.calUid);" ] } } ],
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"start\": \"{{slotStart}}\",\n  \"name\": \"Full Test\",\n  \"email\": \"visitor@example.com\",\n  \"timeZone\": \"{{timeZone}}\",\n  \"topic\": \"E2E test booking\"\n}" }, "url": { "raw": "{{baseUrl}}/api/meetings", "host": ["{{baseUrl}}"], "path": ["api","meetings"] } }
+        },
+        { "name": "GET /mine (session)", "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/meetings/mine", "host": ["{{baseUrl}}"], "path": ["api","meetings","mine"] } } },
+        { "name": "GET / (admin)", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "url": { "raw": "{{baseUrl}}/api/meetings", "host": ["{{baseUrl}}"], "path": ["api","meetings"] } } }
+      ]
+    },
+    {
+      "name": "14 Testimonials",
+      "item": [
+        {
+          "name": "POST / submit (public → notify; capture id)",
+          "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "const j=pm.response.json(); if(j.data) pm.collectionVariables.set('testimonialId', j.data.id);" ] } } ],
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"authorName\": \"John Client\",\n  \"authorRole\": \"CTO\",\n  \"content\": \"Great work, highly recommend!\",\n  \"rating\": 5\n}" }, "url": { "raw": "{{baseUrl}}/api/testimonials", "host": ["{{baseUrl}}"], "path": ["api","testimonials"] } }
+        },
+        { "name": "GET /pending (admin)", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "url": { "raw": "{{baseUrl}}/api/testimonials/pending", "host": ["{{baseUrl}}"], "path": ["api","testimonials","pending"] } } },
+        { "name": "POST /:id/approve (admin)", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "url": { "raw": "{{baseUrl}}/api/testimonials/{{testimonialId}}/approve", "host": ["{{baseUrl}}"], "path": ["api","testimonials","{{testimonialId}}","approve"] } } },
+        { "name": "GET / (public approved)", "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/testimonials", "host": ["{{baseUrl}}"], "path": ["api","testimonials"] } } },
+        { "name": "DELETE /:id (admin cleanup)", "request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "url": { "raw": "{{baseUrl}}/api/testimonials/{{testimonialId}}", "host": ["{{baseUrl}}"], "path": ["api","testimonials","{{testimonialId}}"] } } }
+      ]
+    },
+    {
+      "name": "15 Inquiries",
+      "item": [
+        {
+          "name": "POST / submit (public → notify; capture id)",
+          "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "const j=pm.response.json(); if(j.data) pm.collectionVariables.set('inquiryId', j.data.id);" ] } } ],
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"name\": \"Acme Corp\",\n  \"email\": \"hiring@acme.com\",\n  \"description\": \"We want to build an internal AI tool.\"\n}" }, "url": { "raw": "{{baseUrl}}/api/inquiries", "host": ["{{baseUrl}}"], "path": ["api","inquiries"] } }
+        },
+        { "name": "GET / (admin)", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "url": { "raw": "{{baseUrl}}/api/inquiries", "host": ["{{baseUrl}}"], "path": ["api","inquiries"] } } },
+        { "name": "GET /stats (admin)", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "url": { "raw": "{{baseUrl}}/api/inquiries/stats", "host": ["{{baseUrl}}"], "path": ["api","inquiries","stats"] } } },
+        { "name": "POST /:id/close (admin)", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "url": { "raw": "{{baseUrl}}/api/inquiries/{{inquiryId}}/close", "host": ["{{baseUrl}}"], "path": ["api","inquiries","{{inquiryId}}","close"] } } },
+        { "name": "DELETE /:id (admin cleanup)", "request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "url": { "raw": "{{baseUrl}}/api/inquiries/{{inquiryId}}", "host": ["{{baseUrl}}"], "path": ["api","inquiries","{{inquiryId}}"] } } }
+      ]
+    },
+    {
+      "name": "16 Email / Contact",
+      "item": [
+        { "name": "POST /api/email/contact (send_email)", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"name\": \"Jane\",\n  \"email\": \"jane@example.com\",\n  \"subject\": \"Hello\",\n  \"message\": \"Great portfolio!\"\n}" }, "url": { "raw": "{{baseUrl}}/api/email/contact", "host": ["{{baseUrl}}"], "path": ["api","email","contact"] } } }
+      ]
+    },
+    {
+      "name": "17 Chat / AI (needs ai-service running)",
+      "item": [
+        { "name": "GET /api/chat/health", "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/chat/health", "host": ["{{baseUrl}}"], "path": ["api","chat","health"] } } },
+        { "name": "POST /api/chat/complete", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"messages\": [ { \"role\": \"user\", \"content\": \"Tell me about Prajwal's projects.\" } ]\n}" }, "url": { "raw": "{{baseUrl}}/api/chat/complete", "host": ["{{baseUrl}}"], "path": ["api","chat","complete"] } } }
+      ]
+    },
+    {
+      "name": "18 Rate limit + cleanup",
+      "item": [
+        {
+          "name": "Create key limit=2 (capture)",
+          "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "const j=pm.response.json(); pm.collectionVariables.set('rlKey', j.data.key);" ] } } ],
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"name\": \"rl\",\n  \"rateLimitPerHour\": 2\n}" }, "url": { "raw": "{{baseUrl}}/api/apikeys", "host": ["{{baseUrl}}"], "path": ["api","apikeys"] } }
+        },
+        { "name": "key call #1 (200)", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{rlKey}}" }], "url": { "raw": "{{baseUrl}}/api/github", "host": ["{{baseUrl}}"], "path": ["api","github"] } } },
+        { "name": "key call #2 (200)", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{rlKey}}" }], "url": { "raw": "{{baseUrl}}/api/github", "host": ["{{baseUrl}}"], "path": ["api","github"] } } },
+        { "name": "key call #3 (429)", "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.test('429', () => pm.expect(pm.response.code).to.eql(429));" ] } } ], "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{rlKey}}" }], "url": { "raw": "{{baseUrl}}/api/github", "host": ["{{baseUrl}}"], "path": ["api","github"] } } },
+        { "name": "DELETE category (cleanup)", "request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "url": { "raw": "{{baseUrl}}/api/categories/{{categorySlug}}", "host": ["{{baseUrl}}"], "path": ["api","categories","{{categorySlug}}"] } } },
+        { "name": "Logout (user)", "request": { "method": "POST", "header": [], "url": { "raw": "{{baseUrl}}/api/auth/logout", "host": ["{{baseUrl}}"], "path": ["api","auth","logout"] } } }
+      ]
+    }
+  ]
+}
