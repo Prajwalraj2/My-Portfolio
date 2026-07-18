@@ -1,0 +1,124 @@
+{
+  "info": {
+    "name": "Portfolio — Markdown Seed (Guide + Blog)",
+    "description": "Admin login, then create a Guide and a Blog whose bodies exercise every markdown element (headings, bold/italic, inline + fenced code, blockquote, ordered/unordered lists, GFM table, task list, strikethrough, link, hr). Then view them at /guides/getting-started-mcp and /blog/portfolio-is-the-proof. Set baseUrl to your gateway port.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8006" },
+    { "key": "adminEmail", "value": "admin@prajwalraj.me" },
+    { "key": "adminPassword", "value": "AdminPassword123!" },
+    { "key": "adminToken", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "0. Admin login (capture token)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('200', () => pm.expect(pm.response.code).to.eql(200));",
+              "const j = pm.response.json();",
+              "if (j.data && j.data.accessToken) pm.collectionVariables.set('adminToken', j.data.accessToken);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{ \"email\": \"{{adminEmail}}\", \"password\": \"{{adminPassword}}\" }"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/admin/login",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "admin", "login"]
+        }
+      }
+    },
+    {
+      "name": "1. Create Guide (rich markdown)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": ["pm.test('201', () => pm.expect(pm.response.code).to.eql(201));"]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{ \"slug\": \"getting-started-mcp\", \"title\": \"Getting Started with the Remote MCP Server\", \"summary\": \"Connect Prajwal's tools to Claude, Cursor, or ChatGPT in minutes.\", \"category\": \"mcp\", \"isPublished\": true, \"bodyMd\": \"# Getting Started with the Remote MCP Server\\n\\nConnect Prajwal's tools to **Claude**, **Cursor**, or *ChatGPT* in minutes.\\n\\n## Prerequisites\\n\\n- A Prajwal account\\n- An API key from the /mcp page\\n- A supported MCP client\\n\\n### Supported clients\\n\\n1. Claude Desktop\\n2. Cursor\\n3. ChatGPT\\n\\n> **Note:** Remote MCP uses OAuth, while the local package uses an API key.\\n\\n## Install\\n\\nRun the local server with npx:\\n\\n```bash\\nnpx -y prajwalraj-mcp\\n```\\n\\nThen call `get_projects` or `book_meeting`.\\n\\n## Client comparison\\n\\n| Client  | Auth   | Difficulty |\\n| ------- | ------ | ---------- |\\n| Claude  | OAuth  | Easy       |\\n| Cursor  | Header | Easy       |\\n| ChatGPT | OAuth  | Medium     |\\n\\n## Checklist\\n\\n- [x] Create an account\\n- [ ] Generate an API key\\n- [ ] Add the connector\\n\\nYou can ~~skip~~ read the [full docs](https://example.com).\\n\\n---\\n\\nHappy building!\" }"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/guides",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "guides"]
+        }
+      }
+    },
+    {
+      "name": "2. Create Blog (rich markdown)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": ["pm.test('201', () => pm.expect(pm.response.code).to.eql(201));"]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{ \"slug\": \"portfolio-is-the-proof\", \"title\": \"Building a Portfolio That Is the Proof\", \"excerpt\": \"Most portfolios describe skills. This one demonstrates them.\", \"tags\": [\"devops\", \"ai\", \"nextjs\"], \"status\": \"published\", \"contentMd\": \"# Building a Portfolio That Is the Proof\\n\\nMost portfolios *describe* skills. This one **demonstrates** them.\\n\\n## The stack\\n\\n- **Frontend:** Next.js 16 + shadcn\\n- **Backend:** Fastify + Prisma\\n- **AI:** a LangChain agent\\n\\n## A quick example\\n\\nHere is how a tool wraps the gateway:\\n\\n```ts\\nexport const getProjects = tool(async () => {\\n  return fetch(GATEWAY + /api/projects)\\n})\\n```\\n\\nUse `inline code` for identifiers like `book_meeting`.\\n\\n> Ship the thing that proves the thing.\\n\\n## Progress\\n\\n| Area     | Status |\\n| -------- | ------ |\\n| Backend  | Done   |\\n| AI       | Done   |\\n| Frontend | WIP    |\\n\\n### What is next\\n\\n1. MCP servers\\n2. Observability\\n3. ~~Sleep~~ more building\\n\\nRead the [repo](https://github.com/Prajwalraj2).\\n\\n---\\n\\nThanks for reading!\" }"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/blogs",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "blogs"]
+        }
+      }
+    },
+    {
+      "name": "3. Verify guide (public GET)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/guides/getting-started-mcp",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "guides", "getting-started-mcp"]
+        }
+      }
+    },
+    {
+      "name": "4. Verify blog (public GET)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/blogs/portfolio-is-the-proof",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "blogs", "portfolio-is-the-proof"]
+        }
+      }
+    }
+  ]
+}

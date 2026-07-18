@@ -2,7 +2,7 @@ import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { prisma } from '../db/index.js';
 import { hashPassword, verifyPassword } from '../utils/password.js';
-import { requireAuth } from '../middleware/auth.js';
+import { requireAuth, requireAdmin } from '../middleware/auth.js';
 
 // ============================================
 // TOTP IMPORTS (COMMENTED FOR LATER)
@@ -382,6 +382,80 @@ export async function authRoutes(app: FastifyInstance) {
     return {
       message: 'Password changed successfully',
     };
+  });
+
+  // ==========================================
+  // GET /api/auth/admin/users - List signed-up users (admin only)
+  // ==========================================
+  app.get('/users', { preHandler: [requireAdmin] }, async (request) => {
+    const query = z
+      .object({
+        search: z.string().trim().min(1).optional(),
+        limit: z.coerce.number().int().min(1).max(100).default(50),
+        offset: z.coerce.number().int().min(0).default(0),
+      })
+      .parse(request.query);
+
+    const where = query.search
+      ? {
+          OR: [
+            { email: { contains: query.search, mode: 'insensitive' as const } },
+            { name: { contains: query.search, mode: 'insensitive' as const } },
+          ],
+        }
+      : {};
+
+    const [users, total] = await Promise.all([
+      prisma.user.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        take: query.limit,
+        skip: query.offset,
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          avatarUrl: true,
+          role: true,
+          emailVerified: true,
+          isActive: true,
+          createdAt: true,
+          oauthAccounts: { select: { provider: true } },
+        },
+      }),
+      prisma.user.count({ where }),
+    ]);
+
+    return { data: { users, total } };
+  });
+
+  // ==========================================
+  // PATCH /api/auth/admin/users/:id - Activate/deactivate a user (admin only)
+  // ==========================================
+  app.patch('/users/:id', { preHandler: [requireAdmin] }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const body = z.object({ isActive: z.boolean() }).parse(request.body);
+
+    const user = await prisma.user.findUnique({ where: { id }, select: { id: true } });
+    if (!user) {
+      reply.status(404);
+      return { error: 'NOT_FOUND', message: 'User not found' };
+    }
+
+    const updated = await prisma.user.update({
+      where: { id },
+      data: { isActive: body.isActive },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        emailVerified: true,
+        isActive: true,
+        createdAt: true,
+      },
+    });
+    return { data: updated };
   });
 
   // ==========================================

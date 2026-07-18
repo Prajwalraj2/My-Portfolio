@@ -2,6 +2,7 @@ import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { prisma } from '../db/index.js';
 import { requireAdmin } from '../middleware/auth.js';
+import { notifyPrajwal } from '../services/notify.service.js';
 
 // Validation schemas
 const inquiryStatusEnum = z.enum(['new', 'read', 'replied', 'closed']);
@@ -160,9 +161,17 @@ export async function inquiryRoutes(app: FastifyInstance) {
         status: 'new',
       },
     });
-    
+
+    await notifyPrajwal('inquiry', `New inquiry from ${inquiry.name}`, [
+      `Email: ${inquiry.email}`,
+      `Company: ${inquiry.company ?? '—'}`,
+      `Budget: ${inquiry.budget ?? '—'}`,
+      `Timeline: ${inquiry.timeline ?? '—'}`,
+      `Description: ${inquiry.description.slice(0, 300)}`,
+    ]);
+
     reply.status(201);
-    return { 
+    return {
       data: inquiry,
       message: 'Thank you for your inquiry! I will get back to you soon.',
     };

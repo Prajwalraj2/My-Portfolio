@@ -10,6 +10,8 @@ import { env } from './config/env.js';
 // Import routes
 import { healthRoutes } from './routes/health.js';
 import { authRoutes } from './routes/auth.js';
+import { userAuthRoutes } from './routes/userAuth.js';
+import { apiKeyRoutes } from './routes/apikeys.js';
 import { categoryRoutes } from './routes/categories.js';
 import { projectRoutes } from './routes/projects.js';
 import { skillRoutes } from './routes/skills.js';
@@ -18,6 +20,17 @@ import { testimonialRoutes } from './routes/testimonials.js';
 import { inquiryRoutes } from './routes/inquiries.js';
 import { resumeRoutes } from './routes/resume.js';
 import { chatRoutes } from './routes/chat.js';
+import { githubRoutes } from './routes/github.js';
+import { meetingRoutes } from './routes/meetings.js';
+import { profileRoutes } from './routes/profile.js';
+import { portfolioRoutes } from './routes/portfolio.js';
+import { guideRoutes } from './routes/guides.js';
+import { blogRoutes } from './routes/blogs.js';
+import { emailRoutes } from './routes/email.js';
+
+import { resolvePrincipal } from './auth/resolve.js';
+import { API_KEY_PREFIX } from './auth/apiKey.js';
+import { consumeKeyRateLimit } from './auth/rateLimit.js';
 
 export async function buildApp() {
   const app = Fastify({
@@ -59,9 +72,32 @@ export async function buildApp() {
     },
   });
 
+  // Per-key rate limiting: only kicks in for `Bearer pk_` (API key) requests — zero
+  // overhead for everything else. Caches the resolved principal for downstream guards.
+  app.addHook('preHandler', async (request, reply) => {
+    const auth = request.headers.authorization;
+    if (!auth?.startsWith('Bearer ') || !auth.slice(7).startsWith(API_KEY_PREFIX)) return;
+
+    const principal = await resolvePrincipal(request);
+    request.principal = principal;
+
+    if (principal?.kind === 'apikey') {
+      const result = consumeKeyRateLimit(principal.id, principal.rateLimitPerHour ?? 120);
+      if (!result.allowed) {
+        reply.header('Retry-After', String(result.retryAfterSec));
+        return reply.status(429).send({
+          error: 'RATE_LIMITED',
+          message: `API key rate limit exceeded. Retry in ${result.retryAfterSec}s.`,
+        });
+      }
+    }
+  });
+
   // Register routes
   await app.register(healthRoutes);
-  await app.register(authRoutes, { prefix: '/api/auth' });
+  await app.register(userAuthRoutes, { prefix: '/api/auth' });
+  await app.register(apiKeyRoutes, { prefix: '/api/apikeys' });
+  await app.register(authRoutes, { prefix: '/api/auth/admin' });
   await app.register(categoryRoutes, { prefix: '/api/categories' });
   await app.register(projectRoutes, { prefix: '/api/projects' });
   await app.register(skillRoutes, { prefix: '/api/skills' });
@@ -70,6 +106,13 @@ export async function buildApp() {
   await app.register(inquiryRoutes, { prefix: '/api/inquiries' });
   await app.register(resumeRoutes, { prefix: '/api/resume' });
   await app.register(chatRoutes, { prefix: '/api/chat' });
+  await app.register(githubRoutes, { prefix: '/api/github' });
+  await app.register(meetingRoutes, { prefix: '/api/meetings' });
+  await app.register(profileRoutes, { prefix: '/api/profile' });
+  await app.register(portfolioRoutes, { prefix: '/api/portfolio' });
+  await app.register(guideRoutes, { prefix: '/api/guides' });
+  await app.register(blogRoutes, { prefix: '/api/blogs' });
+  await app.register(emailRoutes, { prefix: '/api/email' });
 
   // Global error handler
   app.setErrorHandler((error: Error & { statusCode?: number }, request, reply) => {
