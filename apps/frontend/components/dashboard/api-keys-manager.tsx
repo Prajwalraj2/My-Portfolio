@@ -27,6 +27,7 @@ export function ApiKeysManager() {
   const [creating, setCreating] = useState(false);
   const [newKey, setNewKey] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [copiedConfig, setCopiedConfig] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function load() {
@@ -82,6 +83,30 @@ export function ApiKeysManager() {
     setTimeout(() => setCopied(false), 1500);
   }
 
+  // Ready-to-paste MCP client config (Cursor / Claude Desktop / Claude Code) with the key inlined.
+  const mcpConfig = newKey
+    ? JSON.stringify(
+        {
+          mcpServers: {
+            prajwalraj: {
+              command: "npx",
+              args: ["-y", "prajwalraj-mcp"],
+              env: { PRAJWAL_API_KEY: newKey },
+            },
+          },
+        },
+        null,
+        2
+      )
+    : "";
+
+  async function copyConfig() {
+    if (!mcpConfig) return;
+    await navigator.clipboard.writeText(mcpConfig);
+    setCopiedConfig(true);
+    setTimeout(() => setCopiedConfig(false), 1500);
+  }
+
   return (
     <div className="space-y-8">
       {/* Create */}
@@ -111,9 +136,29 @@ export function ApiKeysManager() {
             <code className="flex-1 truncate rounded-md bg-background px-3 py-2 font-mono text-sm">
               {newKey}
             </code>
-            <Button variant="outline" size="icon" onClick={copyKey} aria-label="Copy">
+            <Button variant="outline" size="icon" onClick={copyKey} aria-label="Copy key">
               {copied ? <Check /> : <Copy />}
             </Button>
+          </div>
+
+          {/* One-click MCP config */}
+          <div className="mt-5 border-t border-primary/20 pt-4">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm font-medium">Add it to Cursor or Claude Desktop</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  Paste this into your MCP config (e.g. <code className="font-mono">.cursor/mcp.json</code>),
+                  then restart. Every tool works right away.
+                </p>
+              </div>
+              <Button variant="outline" size="sm" onClick={copyConfig} className="shrink-0 gap-1.5">
+                {copiedConfig ? <Check className="size-4" /> : <Copy className="size-4" />}
+                {copiedConfig ? "Copied" : "Copy config"}
+              </Button>
+            </div>
+            <pre className="mt-3 max-h-64 overflow-auto rounded-md bg-background p-3 font-mono text-xs leading-relaxed">
+              {mcpConfig}
+            </pre>
           </div>
         </div>
       ) : null}
